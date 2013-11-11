@@ -1,6 +1,6 @@
 (ns artifactory-crawler.core
   (:require [itsy.core :as itsy]
-            [clojure.core.async :refer [go go-loop <! >! <!! chan alts! timeout close!]]
+            [clojure.core.async :refer [go go-loop <! >! <!! >!! chan alts! timeout close!]]
             [clojure-csv.core :as csv]
             [clj-time.core :as time]
             [clj-time.format :as time-format]
@@ -59,8 +59,9 @@
     [url, artifact (time-format/unparse (time-format/formatters :basic-date-time) created) (str number)]))
 
 ;; Minimal Itsy page handler for found pages, just put them on the supplied channel
+;; Itsy has its own threadpool, a blocking put is sufficient.
 (defn handle-page [c {:keys [url body]}]
-  (go (>! c [url body])))
+   (>!! c [url body]))
 
 (def crawl-options {:host-limit true, :url-limit -1 :workers 3 :url-extractor extract-directory-urls})
 
@@ -72,7 +73,8 @@
         handler (partial handle-page c)
         crawl-handle (itsy/crawl (merge {:url url :handler handler} crawl-options))
         result (go-loop [artifacts []]
-                 (let [[[url body] _] (alts! [c (timeout end-result-timeout-millis)])]
+                 (let [timeout-chan (timeout end-result-timeout-millis)
+                       [[url body] _] (alts! [c timeout-chan])]
                    (if body
                      (let [urls (itsy/extract-all url body)
                            oldest (collect-artifacts urls before)]

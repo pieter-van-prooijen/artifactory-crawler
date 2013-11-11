@@ -1,7 +1,8 @@
 # Artifactory Crawler
 
 Crawls an Artifactory repository and writes a list of all snapshot
-artifacts older than a specified number of days.
+time-stamped artifacts older than a specified number of days. This list can
+be used to delete these artifacts from the repository, freeing up disk-space.
 
 ## Motivation and Use Case
 
@@ -15,11 +16,13 @@ snapshot builds, it doesn't really need the older instances.
 
 Artifactory has a repository setting  which limits the number of unique
 snapshot artifacts for a version, but this limit is switched off by
-default (see admin tab => repository =>
-<select a local snapshot" => edit repo => ).
-Switching this limit on at a later date will only clean up the version
-directories in which new time-stamped artifacts are deployed, but will leave the older
-version directories untouched.
+default (see Admin tab => Repository =>
+<select a local snapshot repo> => Edit repo via popup => Basic Settings
+tab).
+
+The problem is that switching this limit on at a later date will only clean
+up the version directories in which new time-stamped artifacts are
+deployed, but will leave the older version directories untouched.
 
 This crawler will find all of the time-stamped artifacts in a repository
 older then a specified number of days. The URLs of these artifacts can be
@@ -29,13 +32,13 @@ freeing up disk space.
 Care is taken to leave at least one time-stamped artifact under each
 version, so older snapshot builds still work.
 
-Note: this tool is for remedying a one-time administration issue. If you want
-more sophisticated artifactory management tools, check out the pro <link>
-or cloud <link> versions of artifactory.
+This tool is for remedying a one-time administration issue. If you
+want more sophisticated artifactory management tools, check out the [pro](
+http://www.jfrog.com/home/v_artifactorypro_overview) version of artifactory.
 
 ## Installation
 
-git clone <>
+git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
 
 ## Usage
 
@@ -45,22 +48,24 @@ git clone <>
 This will create a CSV file with the urls of all the artifacts.
 
 *The following command is potentially dangerous to the health of your
-artifactory repository, so first do the following:* 
+artifactory repository, so first take the following steps!* 
 
-- Make a backup of the repository before running the command.
-- (Spot) check the output of crawler (by loading the .csv
+- Make a backup of the repository.
+- (Spot)check the output of crawler (e.g. by loading the .csv
 file into spreadsheet) to see if the correct artifacts are going to be deleted.
 
-Pipe the output to curl:
-     $ cut -f 1 -c , artifacts.csv | xargs curl --user <admin>:<password>
-     --request DELETE
+Pipe the first column of the csv to curl to delete each artifact:
 
-Artifactory will automatically delete the checksum files for an artifact.
+     $ cut -f 1 -c , artifacts.csv | xargs curl --user <admin>:<password> --request DELETE
+
+Artifactory will automatically delete the corresponding checksum files of an artifact.
 
 Explicitly reclaim the freed disk space in Artifactory by running the
-garbage collector (via Admin => Maintainance => ...)
+garbage collector (via Admin => Advanced => Maintainance => Garbage Collection)
 
 ## Options
+
+The command takes two mandatory arguments:
 
 - url, the url of the local snapshot repository, this usually has the form
   "http://<artifactory-host>/libs-snapshot-local".
@@ -68,14 +73,16 @@ garbage collector (via Admin => Maintainance => ...)
 
 ## Code
 
-The clojure code uses the excellent itsy (link) crawler library for retrieving the
-various artifactory pages. It only crawls the directory pages of
-artifactory and not the actual artifacts themselves.
+The Clojure code uses the excellent [itsy](https://github.com/dakrone/itsy)
+crawler library for retrieving the various artifactory pages. It is setup
+to only crawl the directory pages of artifactory and not the actual
+artifacts themselves.
 
-Itsy invokes a callback for signalling the retrieval of an url /  page body, the crawler uses
-core.async to process the callback results in a straight for loop. Doing this
-avoids having an explicit global state containing the collected artifact
-urls.
+Itsy invokes a callback for signalling the retrieval of an url / page body,
+the crawler uses core.async to process the callback results in a straight
+for loop. Doing this avoids having an explicit global state for the
+collected artifact urls. The for loop can now accumulate the result in a
+standard way.
 
 When itsy doesn't report any new urls after a certain period, the crawl is
 stopped and the artifact information is written as a CSV file to stdout.
