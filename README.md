@@ -41,9 +41,9 @@ http://www.jfrog.com/home/v_artifactorypro_overview) of artifactory.
 Just clone the repository and use the clojure leiningen build tool to run
 the crawler (a valid JDK installation is necessary, 1.6 or higher) :
 
-   $ git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
-   $ cd artifactory-crawler
-   $ lein run artifactory-repo-url older-than-days > artifacts.csv
+     $ git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
+     $ cd artifactory-crawler
+     $ lein run artifactory-repo-url older-than-days > artifacts.csv
 
 This will create a CSV file with the urls of all the artifacts.
 
