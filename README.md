@@ -17,7 +17,7 @@ snapshot builds, it doesn't really need the older instances.
 Artifactory has a repository setting  which limits the number of unique
 snapshot artifacts for a version, but this limit is switched off by
 default (see Admin tab => Repository =>
-<select a local snapshot repo> => Edit repo via popup => Basic Settings
+Select a local snapshot repo => Choose "Edit" via the popup => Basic Settings
 tab).
 
 The problem is that switching this limit on at a later date will only clean
@@ -33,17 +33,17 @@ Care is taken to leave at least one time-stamped artifact under each
 version, so older snapshot builds still work.
 
 This tool is for remedying a one-time administration issue. If you
-want more sophisticated artifactory management tools, check out the [pro](
-http://www.jfrog.com/home/v_artifactorypro_overview) version of artifactory.
+want more sophisticated repository management tools, check out the [pro version](
+http://www.jfrog.com/home/v_artifactorypro_overview) of artifactory.
 
-## Installation
+## Installation / Usage
 
-git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
+Just clone the repository and use the clojure leiningen build tool to run
+the crawler (a valid JDK installation is necessary, 1.6 or higher) :
 
-## Usage
-
+   $ git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
    $ cd artifactory-crawler
-   $ lein run <artifactory-repo-url> <older-than-days> > artifacts.csv
+   $ lein run artifactory-repo-url older-than-days > artifacts.csv
 
 This will create a CSV file with the urls of all the artifacts.
 
@@ -68,23 +68,23 @@ garbage collector (via Admin => Advanced => Maintainance => Garbage Collection)
 The command takes two mandatory arguments:
 
 - url, the url of the local snapshot repository, this usually has the form
-  "http://<artifactory-host>/libs-snapshot-local".
+  "http://artifactory-host/libs-snapshot-local".
 - nof-days, only list artifacts older than this number of days. 
 
 ## Code
 
-The Clojure code uses the excellent [itsy](https://github.com/dakrone/itsy)
+The Clojure code uses the excellent [Itsy](https://github.com/dakrone/itsy)
 crawler library for retrieving the various artifactory pages. It is setup
-to only crawl the directory pages of artifactory and not the actual
+to only crawl the directory pages of artifactory and not download the actual
 artifacts themselves.
 
 Itsy invokes a callback for signalling the retrieval of an url / page body,
-the crawler uses core.async to process the callback results in a straight
+the crawler uses core.async to process the callback arguments in a straight
 for loop. Doing this avoids having an explicit global state for the
-collected artifact urls. The for loop can now accumulate the result in a
-standard way.
+collected artifact urls. The for loop reads the results from the channel,
+accumulating the results in a standard way.
 
-When itsy doesn't report any new urls after a certain period, the crawl is
+When Itsy doesn't report any new urls after a certain period, the crawl is
 stopped and the artifact information is written as a CSV file to stdout.
 
 ## License
