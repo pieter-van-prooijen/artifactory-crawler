@@ -11,13 +11,13 @@ Each time a deploy is done of an artifact (pom, jar etc.) which has a
 artifact, but creates a time-stamped instance in the version directory of
 the artifact. This can eat up disk space fairly quickly if many snapshots
 deploys are made, for example as part of a continuous integration build
-proces. Maven only fetches the most recent artifact instance when making
+process. Maven only fetches the most recent artifact instance when making
 snapshot builds, it doesn't really need the older instances.
 
 Artifactory has a repository setting  which limits the number of unique
 snapshot artifacts for a version, but this limit is switched off by
 default (see Admin tab => Repository =>
-Select a local snapshot repo => Choose "Edit" via the popup => Basic Settings
+Select a local snapshot repository => Choose "Edit" via the popup => Basic Settings
 tab).
 
 The problem is that switching this limit on at a later date will only clean
@@ -38,14 +38,16 @@ http://www.jfrog.com/home/v_artifactorypro_overview) of artifactory.
 
 ## Installation / Usage
 
-Just clone the repository and use the clojure leiningen build tool to run
-the crawler (a valid JDK installation is necessary, 1.6 or higher) :
+Just clone the repository and use the clojure
+[leiningen](http://leiningen.org#install) build tool to run the crawler (a
+valid JDK installation is necessary, 1.6 or higher) :
 
      $ git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
      $ cd artifactory-crawler
      $ lein run artifactory-repo-url older-than-days > artifacts.csv
 
-This will create a CSV file with the urls of all the artifacts.
+This will create a CSV file with the urls of all the artifacts. It also
+writes a "crawler.log" file in the current directory.
 
 *The following command is potentially dangerous to the health of your
 artifactory repository, so first take the following steps!* 
@@ -58,10 +60,19 @@ Pipe the first column of the csv to curl to delete each artifact:
 
      $ cut -f 1 -c , artifacts.csv | xargs curl --user <admin>:<password> --request DELETE
 
+Or, if you don't want do stress artifactory too much, add a delay (in this cas
+0.05 seconds) between each delete action :
+
+     $ cut -f 1 -c , artifacts.csv | (while read line ; do echo "$line"; \
+         sleep 0.05; done) | xargs -n 1 curl --user <admin>:<password> --request DELETE
+ 
 Artifactory will automatically delete the corresponding checksum files of an artifact.
 
+If the number of artifacts is very large, use the "split" command to break
+up the artifacts csv file into smaller pieces.
+
 Explicitly reclaim the freed disk space in Artifactory by running the
-garbage collector (via Admin => Advanced => Maintainance => Garbage Collection)
+file storage garbage collector (via Admin => Advanced => Maintainance => Garbage Collection)
 
 ## Options
 
