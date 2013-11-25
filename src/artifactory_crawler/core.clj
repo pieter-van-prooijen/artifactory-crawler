@@ -30,14 +30,13 @@
 (def url-idx 0)
 (def id-idx 1)
 (def created-idx 2)
-(def number-idx 3)
+(def number-idsx 3)
 
 ;; Answer artifact, date and sequence number from an artifact url.
 (defn extract-artifact-info [url]
   (let [[_ artifact date time number] (re-find #"(?x)  ([^/]+) - (\d{8}) \. (\d{6}) - (\d+) (?: - \w+ )? \. " url)]
-    (if artifact
-      [url artifact (get-timestamp date time) (Integer/parseInt number)]
-      nil)))
+    (when artifact
+      [url artifact (get-timestamp date time) (Integer/parseInt number)])))
 
 ;; Answer a list of artifact info (vector of url, id, date-time and number) for the urls, 
 ;;  created before "before"
