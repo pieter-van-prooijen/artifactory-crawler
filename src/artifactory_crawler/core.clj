@@ -30,7 +30,7 @@
 (def url-idx 0)
 (def id-idx 1)
 (def created-idx 2)
-(def number-idsx 3)
+(def number-idx 3)
 
 ;; Answer artifact, date and sequence number from an artifact url.
 (defn extract-artifact-info [url]
