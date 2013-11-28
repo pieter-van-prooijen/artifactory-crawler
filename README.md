@@ -98,6 +98,9 @@ accumulating the results in a standard way.
 When Itsy doesn't report any new urls after a certain period, the crawl is
 stopped and the artifact information is written as a CSV file to stdout.
 
+Travis-ci status:
+![travis-ci status](https://travis-ci.org/pieter-van-prooijen/artifactory-crawler.png)
+
 ## License
 
 Copyright © 2013 Pieter van Prooijen

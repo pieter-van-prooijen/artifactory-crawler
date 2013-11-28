@@ -10,4 +10,5 @@
                  [itsy "0.1.1"]
                  [clojure-csv/clojure-csv "2.0.1"]
                  [clj-time "0.6.0"]]
+  :profiles {:user {:plugins [[lein-kibit "0.0.8"]]}}
   :main artifactory-crawler.core)
