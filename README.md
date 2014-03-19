@@ -25,7 +25,7 @@ up the version directories in which new time-stamped artifacts are
 deployed, but will leave the older version directories untouched.
 
 This crawler will find all of the time-stamped artifacts in a repository
-older then a specified number of days. The URLs of these artifacts can be
+older than a specified number of days. The URLs of these artifacts can be
 used with a HTTP "delete" request, removing them from the repository and
 freeing up disk space.
 
@@ -34,7 +34,7 @@ version, so older snapshot builds still work.
 
 This tool is for remedying a one-time administration issue. If you
 want more sophisticated repository management tools, check out the [pro version](
-http://www.jfrog.com/home/v_artifactorypro_overview) of artifactory.
+http://www.jfrog.com/home/v_artifactorypro_overview) of Artifactory.
 
 ## Installation / Usage
 
