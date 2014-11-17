@@ -46,7 +46,7 @@ valid JDK installation is necessary, 1.6 or higher) :
      $ cd artifactory-crawler
      $ lein run artifactory-repo-url older-than-days > artifacts.csv
 
-This will create a CSV file with the urls of all the artifacts. It also
+This will create a CSV file with the urls, artifact names and build numbers of all the artifacts. It also
 writes a "crawler.log" file in the current directory.
 
 *The following command is potentially dangerous to the health of your
@@ -58,12 +58,12 @@ file into spreadsheet) to see if the correct artifacts are going to be deleted.
 
 Pipe the first column of the csv to curl to delete each artifact:
 
-     $ cut -f 1 -c , artifacts.csv | xargs curl --user <admin>:<password> --request DELETE
+     $ cut -f 1 -d , artifacts.csv | xargs curl --user <admin>:<password> --request DELETE
 
-Or, if you don't want do stress artifactory too much, add a delay (in this cas
+Or, if you don't want do stress artifactory too much, add a delay (in this case
 0.05 seconds) between each delete action :
 
-     $ cut -f 1 -c , artifacts.csv | (while read line ; do echo "$line"; \
+     $ cut -f 1 -d , artifacts.csv | (while read line ; do echo "$line"; \
          sleep 0.05; done) | xargs -n 1 curl --user <admin>:<password> --request DELETE
  
 Artifactory will automatically delete the corresponding checksum files of an artifact.
