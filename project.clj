@@ -5,6 +5,7 @@
   :url "http://example.com/FIXME"
   :license {:name "MIT License"
             :url "http://opensource.org/licenses/MIT"}
+  ;;:jvm-opts ["-Xmx512M" "-Xdebug" "-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n"]
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [itsy "0.1.1"]

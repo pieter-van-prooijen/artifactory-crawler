@@ -68,10 +68,17 @@
 
 (def crawl-options {:host-limit true, :url-limit -1 :workers 3 :url-extractor extract-directory-urls})
 
+;; Craw a url or a file containing a list of paths.
+(defmulti crawl (fn [url _] 
+                  (keyword (second (re-find #"^(\w+):" url)))))
+
+(defmethod crawl :default [url filter-artifacts-fn]
+  (throw (IllegalArgumentException. (str "Url argument should either be a http or file url"))))
+
 ;; Crawl the supplied url for maven artifacts older than age-days, answering a sequence of 
 ;;  artifact-infos.
-
-(defn crawl [url filter-artifacts-fn]
+(defmethod crawl :http [url filter-artifacts-fn]
+  (println "crawling " url)
   (let [c (chan)
         handler (partial handle-page c)
         crawl-handle (itsy/crawl (merge {:url url :handler handler} crawl-options))
@@ -81,7 +88,7 @@
                    (if body
                      (let [urls (itsy/extract-all url body)
                            filtered (filter-artifacts-fn urls)]
-                        ; realize the intermediate sequence, using concat on its own gives a stack overlow.
+                        ; realize the intermediate sequence, using concat on its own gives a stack overflow.
                        (recur (doall (concat artifacts filtered))))
                      (do (itsy/stop-workers crawl-handle)
                          (close! c)
@@ -89,17 +96,26 @@
     ;; Block until the result is ready, e.g. no new urls appear within the timeout interval.
     (<!! result-chan)))
 
+(defmethod crawl :file [url filter-artifacts-fn]
+  (println "crawling " url)
+  (let [s (slurp url)
+        files (string/split-lines s)]
+    (filter-artifacts-fn files)))
 
 (defn crawl-oldest [url age-days allow-empty]
   (let [before (time/minus (time/now) (time/days age-days))]
     (crawl url (fn [urls] (collect-artifacts urls before allow-empty)))))
 
 ;; Create an artifact vector for an artifact with a build number 
-;; The id is the artifact without its build number  (e.g. "comments-2013.12"
+;; The id is the artifact without its build number (e.g. "comments-2013.12")
+;; (use the directory above the artifact to disambiguate similar module names like "core" or
+;;  "functional-test" in the various projects. SNAPSHOT versions are treated as separate artifacts.
+
 (defn create-build-number-artifact [url]
-  (let [[_ module sprint number] (re-find #"(?x) / ([^/]+) / ([^/]+) -build- (\d+) $" url)]
+  (let [[_ parent module sprint number snapshot] 
+        (re-find #"(?x) ([^/]+) / ([^/]+) / ([^/]+) -build- (\d+) (-SNAPSHOT)? $" url)]
     (when module
-      [url (str module "-" sprint) nil (Integer/parseInt number)])))
+      [url (str parent "-" module "-" sprint snapshot) nil (Integer/parseInt number)])))
 
 (defn collect-build-artifacts [urls sprint-build]
   "Collect artifacts with a specific sprint and build number, e.g. 2013.09-build-43"
@@ -133,18 +149,25 @@
 (def cli-options
   [["-b" "--build BUILD" "Search for specfic sprint+build directies."]
    ["-e" "--empty" "Allow for empty SNAPSHOT artifact directories."]
-   ["-r" "--release" "Answer all release artifacts which are 'younger' then nof-releases"]])
+   ["-r" "--release" "Answer all release artifacts which are 'younger' then number-to-keep"]
+   ["-h" "--help" "This message"]])
 
-;; Print a csv list of all found artifacts older than nof-days on stdout.
-;; Usage: lein run -b|--build <build> [-e|--empty] <url> <nof-days|nof-releases>
+(def usage (str 
+            "Usage: artifactory-crawler <options> url number-to-keep\n"
+            "\n"
+            "Crawl the supplied url for maven artifacts and print a list of artifacts which can be removed.\n "
+            "If url is a file:/// url, use the contents of that file as a list of artifacts to inspect.\n"
+            "number-to-keep determines how many builds should remain in a certain sprint."
+            "<options> are:\n"))
+
 (defn -main
   [& args]
   ;; Must be set to true in order for itsy to work?
   (alter-var-root #'*read-eval* (constantly true))
 
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-options)
-        _ (when errors 
-            (println (cli/summarize cli-options))
+        _ (when (or errors (:help options)) 
+            (println (str usage (cli/summarize cli-options)))
             (System/exit 1))
         artifacts (cond 
                    (:build options) (crawl-sprint-build (first arguments) (:build options))

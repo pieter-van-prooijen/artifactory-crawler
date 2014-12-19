@@ -79,9 +79,47 @@
     (let [kept-1 (order-build-artifacts artifacts 1)
           artifact-0 (first kept-1)]
       (is (= 4 (count kept-1)))
-      (is (= (nth artifact-0 id-idx) "comments-2013.13"))
+      (is (= (nth artifact-0 id-idx) "platform-comments-2013.13"))
       (is (= (nth artifact-0 number-idx) 1)))
     (let [kept-3 (order-build-artifacts artifacts 3)]
       (is (= 0 (count kept-3))))))
 
+ 
+;; Test for same name modules in different projects
+(def same-name-artifact-urls 
+  [
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/platform/comments/2013.13-build-3"
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/rop/comments/2013.13-build-1"
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/platform/comments/2013.13-build-2"
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/rop/comments/2013.13-build-4"
+])
 
+(deftest filter-artifacts-with-same-name
+  (let [artifacts (map create-build-number-artifact same-name-artifact-urls)]
+    (let [kept-1 (order-build-artifacts artifacts 1)
+          artifact-0 (first kept-1)]
+      (is (= 2 (count kept-1)))
+      (is (= (nth artifact-0 id-idx) "platform-comments-2013.13"))
+      (is (= (nth artifact-0 number-idx) 2)))
+    (let [kept-3 (order-build-artifacts artifacts 3)]
+      (is (= 0 (count kept-3))))))
+
+;; Test for same snaphot modules
+(def snapshot-artifact-urls 
+  [
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/rop/comments/2013.13-build-3-SNAPSHOT"
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/rop/comments/2013.13-build-1"
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/rop/comments/2013.13-build-2-SNAPSHOT"
+   "http://artifactory.rijksoverheid.nl/libs-release-local/nl/rijksoverheid/rop/comments/2013.13-build-4"
+])
+
+(deftest filter-artifacts-with-snapshot
+  (let [artifacts (map create-build-number-artifact snapshot-artifact-urls)]
+    (let [kept-1 (order-build-artifacts artifacts 1)
+          artifact-1 (nth kept-1 1)]
+      (is (= 2 (count kept-1)))
+      (is (= (nth artifact-1 id-idx) "rop-comments-2013.13-SNAPSHOT"))
+      (is (= (nth artifact-1 number-idx) 2))
+      )
+    (let [kept-3 (order-build-artifacts artifacts 3)]
+      (is (= 0 (count kept-3))))))
