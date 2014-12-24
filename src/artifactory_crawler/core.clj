@@ -78,7 +78,6 @@
 ;; Crawl the supplied url for maven artifacts older than age-days, answering a sequence of 
 ;;  artifact-infos.
 (defmethod crawl :http [url filter-artifacts-fn]
-  (println "crawling " url)
   (let [c (chan)
         handler (partial handle-page c)
         crawl-handle (itsy/crawl (merge {:url url :handler handler} crawl-options))
@@ -88,7 +87,7 @@
                    (if body
                      (let [urls (itsy/extract-all url body)
                            filtered (filter-artifacts-fn urls)]
-                        ; realize the intermediate sequence, using concat on its own gives a stack overflow.
+                        ;; realize the intermediate sequence, using concat on its own gives a stack overflow.
                        (recur (doall (concat artifacts filtered))))
                      (do (itsy/stop-workers crawl-handle)
                          (close! c)
@@ -97,7 +96,6 @@
     (<!! result-chan)))
 
 (defmethod crawl :file [url filter-artifacts-fn]
-  (println "crawling " url)
   (let [s (slurp url)
         files (string/split-lines s)]
     (filter-artifacts-fn files)))
@@ -108,14 +106,14 @@
 
 ;; Create an artifact vector for an artifact with a build number 
 ;; The id is the artifact without its build number (e.g. "comments-2013.12")
-;; (use the directory above the artifact to disambiguate similar module names like "core" or
+;; Use the directory above the artifact to disambiguate similar module names like "core" or
 ;;  "functional-test" in the various projects. SNAPSHOT versions are treated as separate artifacts.
 
 (defn create-build-number-artifact [url]
-  (let [[_ parent module sprint number snapshot] 
+  (let [[_ parent module sprint-branch number snapshot] 
         (re-find #"(?x) ([^/]+) / ([^/]+) / ([^/]+) -build- (\d+) (-SNAPSHOT)? $" url)]
     (when module
-      [url (str parent "-" module "-" sprint snapshot) nil (Integer/parseInt number)])))
+      [url (str parent "-" module "-" sprint-branch snapshot) nil (Integer/parseInt number)])))
 
 (defn collect-build-artifacts [urls sprint-build]
   "Collect artifacts with a specific sprint and build number, e.g. 2013.09-build-43"

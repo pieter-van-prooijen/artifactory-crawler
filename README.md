@@ -46,8 +46,16 @@ valid JDK installation is necessary, 1.6 or higher) :
      $ cd artifactory-crawler
      $ lein run artifactory-repo-url older-than-days > artifacts.csv
 
-This will create a CSV file with the urls, artifact names and build numbers of all the artifacts. It also
-writes a "crawler.log" file in the current directory.
+This will create a CSV file with the urls, artifact names and build numbers of all the artifacts. It also writes a
+"crawler.log" file in the current directory.
+
+If you want to make a standalone jar which does not require leiningen to run, use the following:
+
+    $ lein uberjar
+
+and invoke it with:
+
+    $ java -jar <path-to-artifactory-crawler-0.1.0-SNAPSHOT-standalone.jar> ....
 
 *The following command is potentially dangerous to the health of your
 artifactory repository, so first take the following steps!* 
