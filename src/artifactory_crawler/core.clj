@@ -129,7 +129,7 @@
 (defn order-build-artifacts [artifacts nof-keep]
   "Answer the oldest artifacts (according to buildnumber) except for the last nof-keep items."
   (->> artifacts
-       ;; juxt creates a vector of results to compare.
+       ;; sort by comparing vectors of the form [(nth a id-idx) (nth a number-idx)]
        (sort-by (juxt #(nth %1 id-idx) #(nth %1 number-idx)))
        (partition-by #(nth %1 id-idx))
        (map #(drop-last nof-keep %1))
