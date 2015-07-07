@@ -44,7 +44,7 @@ valid JDK installation is necessary, 1.6 or higher) :
 
      $ git clone https://github.com/pieter-van-prooijen/artifactory-crawler.git
      $ cd artifactory-crawler
-     $ lein run artifactory-repo-url older-than-days > artifacts.csv
+     $ lein run -- artifactory-repo-url older-than-days > artifacts.csv
 
 This will create a CSV file with the urls, artifact names and build numbers of all the artifacts. It also writes a
 "crawler.log" file in the current directory.
