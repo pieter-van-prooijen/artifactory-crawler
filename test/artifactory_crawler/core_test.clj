@@ -4,6 +4,16 @@
   (:require [clj-time.core :as time]
             [clojure.java.io :as io]))
 
+(defmethod crawl :foo [url filter-artifacts]
+  "foo")
+
+(deftest crawl-dispatch
+  (testing "Scheme extracting and handling"
+    (is (= (crawl "foo://bla.com" identity) "foo"))
+    (try (crawl "bla://foo.bar" identity)
+         (is false "should have thrown IllegalArgumentexception") 
+         (catch IllegalArgumentException e ()))))
+
 (deftest extract-artifact-info-test
   (testing "Extracting artifact info"
     (let [orig-url "http://hostname/2013.11-build-1-SNAPSHOT/comments-2013.11-build-1-20131105.100352-9.pom"

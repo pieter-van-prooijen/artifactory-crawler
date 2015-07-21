@@ -25,7 +25,7 @@
 (defn get-timestamp [date time]
   (let [[_ yyyy MM dd] (re-find #"(?x) (\d{4}) (\d{2}) (\d{2})" date)
         [_ hh mm ss] (re-find #"(?x) (\d{2}) (\d{2}) (\d{2})" time)]
-    (apply time/date-time (map #(Integer/parseInt %1) [yyyy MM dd hh mm ss]))))
+    (apply time/date-time (map #(Integer/parseInt %) [yyyy MM dd hh mm ss]))))
 
 ;; Indexes in the artifact info vector.
 (def url-idx 0)
@@ -51,10 +51,10 @@
 ;; Answer a list of artifact info (vector of url, id, date-time and number) for the urls, 
 ;;  created before "before"
 (defn collect-artifacts [urls before allow-empty]
-  (let [artifacts (->> (remove #(re-find #"(?x) \.  md5|sha1  $" %1) urls) ; ignore checksums
+  (let [artifacts (->> (remove #(re-find #"(?x) \.  md5|sha1  $" %) urls) ; ignore checksums
                        (map extract-artifact-info)
                        (remove nil?)
-                       (sort #(compare (%2 created-idx) (%1 created-idx)))) ; descending date order
+                       (sort #(compare (%2 created-idx) (% created-idx)))) ; descending date order
         most-recent-number (nth (first artifacts) number-idx)
 
         ;; Unless overriden, at least one artifact should remain in the directory for the snapshot version.
@@ -78,9 +78,10 @@
 (def crawl-options {:host-limit true, :url-limit -1 :workers 3 :url-extractor extract-directory-urls})
 
 ;;
-;; Craw a url or a file containing a list of paths.
-(defmulti crawl (fn [url _] 
-                  (keyword (second (re-find #"^(\w+):" url)))))
+;; Craw a url or a file containing a list of paths, dispatch on scheme
+(defmulti crawl (fn [url _]
+                  (let [[_ scheme] (re-find #"^(\w+):" url)])
+                  (keyword scheme)))
 
 (defmethod crawl :default [url filter-artifacts-fn]
   (throw (IllegalArgumentException. (str "Url argument should either be a http or file url"))))
@@ -111,6 +112,8 @@
         files (string/split-lines s)]
     (filter-artifacts-fn files)))
 
+
+;; Crawl for artifacts older than age-days
 (defn crawl-oldest [url age-days allow-empty]
   (let [before (time/minus (time/now) (time/days age-days))]
     (crawl url (fn [urls] (collect-artifacts urls before allow-empty)))))
@@ -132,7 +135,7 @@
 (defn collect-build-artifacts [urls sprint-build]
   "Collect artifacts with a specific sprint and build number, e.g. 2013.09-build-43"
   (->> urls
-       (filter #(.endsWith %1 sprint-build))
+       (filter #(.endsWith % sprint-build))
        (map create-build-number-artifact)
        (remove nil?)))
 
@@ -140,7 +143,7 @@
   (crawl url (fn [urls] (collect-build-artifacts urls sprint-build))))
 
 ;; Function for sorting / partitioning on sprint ids
-(def sprint-vec (juxt #(nth %1 sprint-year-idx) #(nth %1 sprint-number-idx)))
+(def sprint-vec (juxt #(nth % sprint-year-idx) #(nth % sprint-number-idx)))
 
 ;; split the list of artifacts in a list of sprints to remove and one to keep
 (defn split-for-sprints [artifacts nof-keep]
@@ -156,7 +159,7 @@
   (let [[sprints-to-remove sprints-to-keep] (split-for-sprints artifacts nof-keep-sprints)
         builds-to-keep (->> sprints-to-keep
                             (partition-by sprint-vec)
-                            (map #(drop-last nof-keep-builds %1))
+                            (map #(drop-last nof-keep-builds %))
                             (apply concat))]
     (concat sprints-to-remove builds-to-keep)))
 
@@ -164,9 +167,9 @@
   "Answer the oldest artifacts (according to sprint / buildnumber) except for the last nof-keep items / sprints.
    Note that nof-keep-sprints is *per module*, not per artifact"
   (->> artifacts
-       (sort-by (juxt #(nth %1 id-idx) sprint-vec #(nth %1 number-idx)))
-       (partition-by #(nth %1 id-idx))
-       (map #(order-build-artifacts-for-single-id %1 nof-keep-sprints nof-keep-builds))
+       (sort-by (juxt #(nth % id-idx) sprint-vec #(nth % number-idx)))
+       (partition-by #(nth % id-idx))
+       (map #(order-build-artifacts-for-single-id % nof-keep-sprints nof-keep-builds))
        (apply concat)))
 
 (defn filter-build-number-artifacts [urls]
@@ -183,15 +186,15 @@
    ["-e" "--empty" "Allow for empty SNAPSHOT artifact directories."]
    ["-r" "--release" "Answer all release artifacts which are 'younger' than number-of-builds-to-keep."]
    ["-s" "--sprints-to-keep NOF-SPRINTS" "Answer all sprints which are younger than nof-sprints."
-    :parse-fn #(Integer/parseInt %1) ]
+    :parse-fn #(Integer/parseInt %) ]
    ["-h" "--help" "This message"]])
 
 (def usage (str 
-            "Usage: artifactory-crawler <options> url nof-days|number-of-builds-to-keep-per-sprint\n"
+            "Usage: artifactory-crawler <options> url nof-days|nof-builds-to-keep-per-sprint\n"
             "\n"
             "Crawl the supplied url for maven artifacts and print a list of artifacts which can be removed.\n"
             "If url is a file:/// url, use the contents of that file as a list of artifacts to inspect.\n"
-            "nof-days/number-to-keep determines how many builds should remain in a certain sprint or\n"
+            "nof-days/nof-builds-to-keep determines how many builds should remain in a certain sprint or\n"
             "how old a SNAPSHOT artifact\n"
             "can before it's flagged for removal.\n"
             "<options> are:\n"))
