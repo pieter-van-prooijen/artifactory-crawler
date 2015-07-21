@@ -40,7 +40,7 @@
     (when year
       [(Integer/parseInt year) (Integer/parseInt num)])))
 
-;; Answer url sprint artifact, date and sequence number from an artifact url.
+;; Answer the url-sprint-artifact, date and sequence number from an artifact url.
 (defn extract-artifact-info [url]
   (let [[_ artifact date time number] (re-find #"(?x)  ([^/]+) - (\d{8}) \. (\d{6}) - (\d+) (?: - \w+ )? \. " url)]
     (when artifact
@@ -85,9 +85,10 @@
 (defmethod crawl :default [url filter-artifacts-fn]
   (throw (IllegalArgumentException. (str "Url argument should either be a http or file url"))))
 
-;; Crawl the supplied url for maven artifacts older than age-days, answering a sequence of 
-;;  artifact-infos.
 (defmethod crawl :http [url filter-artifacts-fn]
+  "Crawl the supplied url for artifacts and filter them through
+  filter-artifacts-fn, which takes a collection of artifact urls and
+  answers the ones to report in the crawl"
   (let [c (chan)
         handler (partial handle-page c)
         crawl-handle (itsy/crawl (merge {:url url :handler handler} crawl-options))
@@ -132,7 +133,7 @@
   "Collect artifacts with a specific sprint and build number, e.g. 2013.09-build-43"
   (->> urls
        (filter #(.endsWith %1 sprint-build))
-       (map #(create-build-number-artifact %1))
+       (map create-build-number-artifact)
        (remove nil?)))
 
 (defn crawl-sprint-build [url sprint-build]
@@ -170,7 +171,7 @@
 
 (defn filter-build-number-artifacts [urls]
   (->> urls
-       (map #(create-build-number-artifact %1))
+       (map create-build-number-artifact)
        (remove nil?)))
 
 (defn crawl-releases [url nof-keep-sprints nof-keep-builds]
@@ -180,17 +181,19 @@
 (def cli-options
   [["-b" "--build BUILD" "Search for specfic sprint+build directies."]
    ["-e" "--empty" "Allow for empty SNAPSHOT artifact directories."]
-   ["-r" "--release" "Answer all release artifacts which are 'younger' than number-to-keep."]
+   ["-r" "--release" "Answer all release artifacts which are 'younger' than number-of-builds-to-keep."]
    ["-s" "--sprints-to-keep NOF-SPRINTS" "Answer all sprints which are younger than nof-sprints."
     :parse-fn #(Integer/parseInt %1) ]
    ["-h" "--help" "This message"]])
 
 (def usage (str 
-            "Usage: artifactory-crawler <options> url number-of-builds-to-keep-per-sprint\n"
+            "Usage: artifactory-crawler <options> url nof-days|number-of-builds-to-keep-per-sprint\n"
             "\n"
-            "Crawl the supplied url for maven artifacts and print a list of artifacts which can be removed.\n "
+            "Crawl the supplied url for maven artifacts and print a list of artifacts which can be removed.\n"
             "If url is a file:/// url, use the contents of that file as a list of artifacts to inspect.\n"
-            "number-to-keep determines how many builds should remain in a certain sprint."
+            "nof-days/number-to-keep determines how many builds should remain in a certain sprint or\n"
+            "how old a SNAPSHOT artifact\n"
+            "can before it's flagged for removal.\n"
             "<options> are:\n"))
 
 (defn -main

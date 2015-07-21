@@ -90,6 +90,8 @@ The command takes two mandatory arguments:
   "http://artifactory-host/libs-snapshot-local".
 - nof-days, only list artifacts older than this number of days. 
 
+There are also some command line switches which are printed out with the -h flag.
+
 ## Code
 
 The Clojure code uses the excellent [Itsy](https://github.com/dakrone/itsy)

@@ -7,10 +7,10 @@
             :url "http://opensource.org/licenses/MIT"}
 
   ;;:jvm-opts ["-Xmx512M" "-Xdebug" "-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n"]
-  :dependencies [[org.clojure/clojure "1.6.0"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [itsy "0.1.1"]
-                 [clj-time "0.9.0"]
+                 [clj-time "0.10.0"]
                  [org.clojure/tools.cli "0.3.1"]]
   :profiles {:dev {:plugins [[lein-kibit "0.0.8"]]}}
   :main artifactory-crawler.core
