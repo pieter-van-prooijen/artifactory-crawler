@@ -16,21 +16,28 @@
 
 (deftest extract-artifact-info-test
   (testing "Extracting artifact info"
+
+    
+    
     (let [orig-url "http://hostname/2013.11-build-1-SNAPSHOT/comments-2013.11-build-1-20131105.100352-9.pom"
-          [url sprint-year sprint-number id date num] (extract-artifact-info orig-url)]
+          [url sprint-year sprint-number branch id date num] (extract-artifact-info orig-url)]
       (is (= url orig-url))
       (is (= sprint-year 2013))
       (is (= sprint-number 11))
+      (is (= branch "build-1"))
       (is (= id "comments-2013.11-build-1"))
       (is (= date (time/date-time 2013 11 5 10 3 52)))
       (is (= num 9)))
 
+    
+
     ;; sources/javadoc jars
     (let [orig-url "http://hostname/2013.11-build-1-SNAPSHOT/comments-2013.11-build-1-20131105.100352-9-sources.jar"
-          [url sprint-year sprint-number id date num] (extract-artifact-info orig-url)]
+          [url sprint-year sprint-number branch id date num] (extract-artifact-info orig-url)]
       (is (= url orig-url))
       (is (= sprint-year 2013))
       (is (= sprint-number 11))
+      (is (= branch "build-1"))
       (is (= id "comments-2013.11-build-1"))
       (is (= date (time/date-time 2013 11 5 10 3 52)))
       (is (= num 9)))))
@@ -101,8 +108,16 @@
 
 (deftest create-build-number-artifact-info
   (let [orig-url "/home/pieter/.m2/repository/nl/rijksoverheid/platform/platform/1.0-build-1"
-        [url sprint id _ num] (create-build-number-artifact orig-url)]
-    (is (nil? url))))
+        [url sprint-year sprint-number branch id _ num] (create-build-number-artifact orig-url)]
+    (is (nil? url)))
+  (let [orig-url "bla/comments/comments-cms/2014.13-build-4"
+        [url sprint-year sprint-number branch id _ num] (create-build-number-artifact orig-url)]
+    (is (= (nil? branch)))
+    (is (= 4 num)))
+  (let [orig-url "bla/comments/comments-cms/2014.13-hotfix-1-build-4"
+        [url sprint-year sprint-number branch id _ num] (create-build-number-artifact orig-url)]
+    (is (= "hotfix-1" branch))
+    (is (= 4 num))))
 
 ;; Test for removing all artifacts in a sprint except for the last n
 (deftest filter-artifacts-by-build-number
@@ -170,6 +185,21 @@
       )
     (let [kept-3 (order-build-artifacts artifacts Integer/MAX_VALUE 3)]
       (is (= 0 (count kept-3))))))
+
+
+(def mixed-hotfix-urls
+  ["platform/comments/comments-cms/2014.13-build-1-build-6"
+   "platform/comments/comments-cms/2014.13-build-1-build-7"
+   "platform/comments/comments-cms/2014.13-build-208"
+   "platform/comments/comments-cms/2014.13-build-210"
+   "platform/comments/comments-cms/2014.13-build-307"
+   "platform/comments/comments-cms/2014.13-hotfix-1-build-4"
+   "platform/comments/comments-cms/2014.13-hotfix-1-build-5"]) 
+
+(deftest filter-artifacts-with-hotfix
+  (let [artifacts (map create-build-number-artifact mixed-hotfix-urls)]
+    (let [kept-5 (order-build-artifacts artifacts Integer/MAX_VALUE 5)]
+      (is (zero? (count kept-5))))))
 
 ;; Test crawling from a list of files
 (deftest crawl-file-list

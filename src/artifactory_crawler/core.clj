@@ -31,22 +31,23 @@
 (def url-idx 0)
 (def sprint-year-idx 1)
 (def sprint-number-idx 2)
-(def id-idx 3)
-(def created-idx 4)
-(def number-idx 5)
+(def branch-idx 3)
+(def id-idx 4)
+(def created-idx 5)
+(def number-idx 6)
 
 (defn sprint-year-number [sprint]
-  (let [[_ year num] (re-find #"(?x) (\d{4}) \. (\d{1,2})" sprint)]
+  (let [[_ year num branch] (re-find #"(?x) (\d{4}) \. (\d{1,2}) (?: - (.+))? $" sprint)]
     (when year
-      [(Integer/parseInt year) (Integer/parseInt num)])))
+      [(Integer/parseInt year) (Integer/parseInt num) branch])))
 
 ;; Answer the url-sprint-artifact, date and sequence number from an artifact url.
 (defn extract-artifact-info [url]
   (let [[_ artifact date time number] (re-find #"(?x)  ([^/]+) - (\d{8}) \. (\d{6}) - (\d+) (?: - \w+ )? \. " url)]
     (when artifact
-      (let [[sprint-year sprint-number] (sprint-year-number artifact)]
+      (let [[sprint-year sprint-number branch] (sprint-year-number artifact)]
         (when sprint-year
-          [url sprint-year sprint-number artifact (get-timestamp date time) (Integer/parseInt number)])))))
+          [url sprint-year sprint-number branch artifact (get-timestamp date time) (Integer/parseInt number)])))))
 
 ;; Answer a list of artifact info (vector of url, id, date-time and number) for the urls, 
 ;;  created before "before"
@@ -64,7 +65,7 @@
 
 ;; Create an artifact vector suitable for csv output.  
 (defn printable-artifact [artifact]
-  (let [[url _ _ artifact created number] artifact
+  (let [[url _ _ _ artifact created number] artifact
         created-str (if created
                       (time-format/unparse (time-format/formatters :basic-date-time) created)
                       "-")]
@@ -80,8 +81,8 @@
 ;;
 ;; Craw a url or a file containing a list of paths, dispatch on scheme
 (defmulti crawl (fn [url _]
-                  (let [[_ scheme] (re-find #"^(\w+):" url)])
-                  (keyword scheme)))
+                  (let [[_ scheme] (re-find #"^(\w+):" url)]
+                    (keyword scheme))))
 
 (defmethod crawl :default [url filter-artifacts-fn]
   (throw (IllegalArgumentException. (str "Url argument should either be a http or file url"))))
@@ -125,11 +126,11 @@
 
 (defn create-build-number-artifact [url]
   (let [[_ parent module sprint-branch number snapshot] 
-        (re-find #"(?x) ([^/]+) / ([^/]+) / ([^/]+) -build- (\d+) (-SNAPSHOT)? $" url)]
+        (re-find #"(?x) ([^/]+) / ([^/]+) / ([^/]+)  -build- (\d+) (-SNAPSHOT)? $" url)]
     (when module
-      (let [[sprint-year sprint-number] (sprint-year-number sprint-branch)]
+      (let [[sprint-year sprint-number branch] (sprint-year-number sprint-branch)]
         (when sprint-year
-          [url sprint-year sprint-number 
+          [url sprint-year sprint-number branch
            (str parent "-" module (when snapshot "-" snapshot)) nil (Integer/parseInt number)])))))
 
 (defn collect-build-artifacts [urls sprint-build]
@@ -143,7 +144,7 @@
   (crawl url (fn [urls] (collect-build-artifacts urls sprint-build))))
 
 ;; Function for sorting / partitioning on sprint ids
-(def sprint-vec (juxt #(nth % sprint-year-idx) #(nth % sprint-number-idx)))
+(def sprint-vec (juxt #(nth % sprint-year-idx) #(nth % sprint-number-idx) #(nth % branch-idx)))
 
 ;; split the list of artifacts in a list of sprints to remove and one to keep
 (defn split-for-sprints [artifacts nof-keep]
@@ -184,7 +185,7 @@
 (def cli-options
   [["-b" "--build BUILD" "Search for specfic sprint+build directies."]
    ["-e" "--empty" "Allow for empty SNAPSHOT artifact directories."]
-   ["-r" "--release" "Answer all release artifacts which are 'younger' than number-of-builds-to-keep."]
+   ["-r" "--release" "Operate in release mode: answer all artifacts which are 'younger' than nof-builds-to-keep instead of looking at the timestamp of snapshot releases. Assumes each (snapshot) build has a separate buildnumber"]
    ["-s" "--sprints-to-keep NOF-SPRINTS" "Answer all sprints which are younger than nof-sprints."
     :parse-fn #(Integer/parseInt %) ]
    ["-h" "--help" "This message"]])
